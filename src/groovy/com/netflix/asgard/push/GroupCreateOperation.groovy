@@ -81,7 +81,8 @@ class GroupCreateOperation extends AbstractPushOperation {
                     withKeyName(options.keyName).withRamdiskId(options.ramdiskId).
                     withSecurityGroups(options.common.securityGroups).
                     withIamInstanceProfile(options.iamInstanceProfile).
-                    withSpotPrice(options.spotPrice).withEbsOptimized(options.ebsOptimized)
+                    withSpotPrice(options.spotPrice).withEbsOptimized(options.ebsOptimized).
+		    withAssociatePublicIpAddress(options.associatePublicIpAddress)
 
             final Collection<AutoScalingProcessType> suspendedProcesses = Sets.newHashSet()
             if (options.zoneRebalancingSuspended) {
@@ -92,7 +93,7 @@ class GroupCreateOperation extends AbstractPushOperation {
             }
 
             CreateAutoScalingGroupResult result = awsAutoScalingService.createLaunchConfigAndAutoScalingGroup(
-                    options.common.userContext, groupTemplate, launchConfigTemplate, suspendedProcesses, false, task)
+                    options.common.userContext, groupTemplate, launchConfigTemplate, suspendedProcesses, task)
             log.debug """GroupCreateOperation.start for Cluster '${clusterName}' Group created with Load Balancers: \
 ${groupTemplate.loadBalancerNames} and result ${result}"""
             task.log(result.toString())

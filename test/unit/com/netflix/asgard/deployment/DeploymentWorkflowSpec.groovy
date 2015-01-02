@@ -15,6 +15,7 @@
  */
 package com.netflix.asgard.deployment
 
+import com.amazonaws.AmazonServiceException
 import com.netflix.asgard.Region
 import com.netflix.asgard.UserContext
 import com.netflix.asgard.deployment.steps.CreateAsgStep
@@ -157,13 +158,13 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> ''
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 60 minutes during the judgment period.") >> false
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Judgment period for ASG 'the_seaward-v003' has ended.",
                 "Please make a decision to proceed or roll back.")
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
@@ -258,8 +259,8 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> {
             throw new IllegalStateException('Something really went wrong!')
         }
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
                 "Deployment was rolled back due to error: java.lang.IllegalStateException: Something really went wrong!"
@@ -319,8 +320,8 @@ class DeploymentWorkflowSpec extends Specification {
 
         then: 1 * mockActivities.resizeAsg(userContext, 'the_seaward-v003', 1, 1, 4)
         then: mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> 'Not operational yet.'
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
                 "Deployment was rolled back. ASG 'the_seaward-v003' was not at capacity after 30 minutes.")
@@ -350,8 +351,8 @@ class DeploymentWorkflowSpec extends Specification {
 
         then: 1 * mockActivities.resizeAsg(userContext, 'the_seaward-v003', 1, 3, 4)
         then: (1.._) * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 3) >> 'Not healthy Yet'
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
                 "Deployment was rolled back. ASG 'the_seaward-v003' was not at capacity after 40 minutes.")
@@ -385,10 +386,10 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> ''
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 60 minutes during the judgment period.") >> false
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
@@ -424,7 +425,7 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> ''
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 60 minutes during the judgment period.") >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         then: 1 * mockActivities.resizeAsg(userContext, 'the_seaward-v003', 1, 3, 4)
@@ -464,10 +465,10 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 3) >> ''
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 120 minutes during the judgment period.") >> false
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
@@ -511,7 +512,7 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 3) >> ''
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 120 minutes during the judgment period.") >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v002')
@@ -590,13 +591,48 @@ class DeploymentWorkflowSpec extends Specification {
         then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v002')
         then: 1 * mockActivities.startAsgAnalysis('the_seaward', 'gob@bluth.com') >> new ScheduledAsgAnalysis(
                 "ASG analysis for 'the_seaward' cluster.", new DateTime())
-        then: 1 * mockActivities.askIfDeploymentShouldProceed('gob@bluth.com', 'the_seaward-v003',
+        then: 1 * mockActivities.askIfDeploymentShouldProceed(_, 'gob@bluth.com', 'the_seaward-v003',
                 "ASG will now be evaluated for up to 240 minutes during the judgment period.") >> false
-        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002')
-        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003')
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> true
+        then: 1 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
         then: 1 * mockActivities.stopAsgAnalysis("ASG analysis for 'the_seaward' cluster.")
         then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
                 "Deployment failed for ASG 'the_seaward-v003'.",
                 "Deployment was rolled back. Judge decided ASG 'the_seaward-v003' was not viable.")
+    }
+
+    def 'should not rollback if previous ASG has disappeared'() {
+        DeploymentWorkflowOptions deploymentOptions = new DeploymentWorkflowOptions(clusterName: 'the_seaward',
+                notificationDestination: 'gob@bluth.com',
+                steps: [
+                        new CreateAsgStep(),
+                        new ResizeStep(capacity: 1, startUpTimeoutMinutes: 30)
+                ]
+        )
+
+        when:
+        workflowExecuter.deploy(userContext, deploymentOptions, lcInputs, asgInputs)
+
+        then:
+        workflowOperations.logHistory == ['{"step":0}'] + createAsgLog + '{"step":1}' + canaryScaleUpLog +
+                "Previous ASG 'the_seaward-v002' could not be enabled." +
+                "Deployment was rolled back due to error: java.lang.IllegalStateException: Something really went wrong!"
+        interaction {
+            createAsgInteractions()
+        }
+        0 * _
+
+        then: 1 * mockActivities.resizeAsg(userContext, 'the_seaward-v003', 1, 1, 4)
+        then: 1 * mockActivities.reasonAsgIsNotOperational(userContext, 'the_seaward-v003', 1) >> {
+            throw new IllegalStateException('Something really went wrong!')
+        }
+        then: 1 * mockActivities.enableAsg(userContext, 'the_seaward-v002') >> {
+            throw new AmazonServiceException('AutoScalingGroup name not found - no such group: the_seaward-v002')
+        }
+        then: 0 * mockActivities.disableAsg(userContext, 'the_seaward-v003') >> true
+        then: 1 * mockActivities.sendNotification(_, 'gob@bluth.com', 'the_seaward',
+                "Deployment failed for ASG 'the_seaward-v003'.",
+                "Deployment was rolled back due to error: java.lang.IllegalStateException: Something really went wrong!"
+        )
     }
 }

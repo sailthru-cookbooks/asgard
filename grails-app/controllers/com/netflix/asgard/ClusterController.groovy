@@ -23,6 +23,7 @@ import com.amazonaws.services.elasticloadbalancing.model.LoadBalancerDescription
 import com.google.common.annotations.VisibleForTesting
 import com.netflix.asgard.model.AutoScalingGroupData
 import com.netflix.asgard.model.AutoScalingProcessType
+import com.netflix.asgard.model.Deployment
 import com.netflix.asgard.model.InstancePriceType
 import com.netflix.asgard.model.ScalingPolicyData
 import com.netflix.asgard.model.SubnetTarget
@@ -52,6 +53,7 @@ class ClusterController {
     def awsEc2Service
     def awsLoadBalancerService
     def configService
+    def deploymentService
     def mergedInstanceService
     def pushService
     def spotInstanceRequestService
@@ -111,6 +113,12 @@ class ClusterController {
             withFormat {
                 html {
                     AutoScalingGroupData lastGroup = cluster.last()
+                   	LaunchConfiguration lastLaunchConfig = awsAutoScalingService.
+		    		getLaunchConfiguration(userContext, lastGroup.launchConfigurationName, From.CACHE)
+		    		boolean associatePublicIpAddress = false
+		    		if (lastLaunchConfig) {
+						associatePublicIpAddress = lastLaunchConfig.isAssociatePublicIpAddress()
+		    		}		    				    		
                     String nextGroupName = Relationships.buildNextAutoScalingGroupName(lastGroup.autoScalingGroupName)
                     int clusterMaxGroups = configService.clusterMaxGroups
                     Boolean okayToCreateGroup = cluster.size() < clusterMaxGroups
@@ -141,6 +149,8 @@ ${lastGroup.loadBalancerNames}"""
                             SubnetTarget.EC2).sort()
                     Map<String, Collection<String>> zonesByPurpose = subnets.groupZonesByPurpose(
                             availabilityZones*.zoneName, SubnetTarget.EC2)
+                    Deployment deployment = deploymentService.getRunningDeploymentForCluster(userContext.region,
+                            cluster.name)
                     attributes.putAll([
                             cluster: cluster,
                             runningTasks: runningTasks,
@@ -157,7 +167,9 @@ ${lastGroup.loadBalancerNames}"""
                             loadBalancersGroupedByVpcId: loadBalancers.groupBy { it.VPCId },
                             selectedLoadBalancers: selectedLoadBalancers,
                             spotUrl: configService.spotUrl,
-                            pricing: params.pricing ?: attributes.pricing
+                            pricing: params.pricing ?: attributes.pricing,
+			    associatePublicIpAddress: associatePublicIpAddress,
+                            deployment: deployment
                     ])
                     attributes
                 }
@@ -246,6 +258,8 @@ ${loadBalancerNames}"""
 Group: ${lastGroup.loadBalancerNames}"""
             boolean ebsOptimized = params.containsKey('ebsOptimized') ? params.ebsOptimized?.toBoolean() :
                 lastLaunchConfig.ebsOptimized
+	    boolean associatePublicIpAddress = params.containsKey('associatePublicIpAddress') ? params.associatePublicIpAddress?.toBoolean() :
+                lastLaunchConfig.associatePublicIpAddress
             if (params.noOptionalDefaults != 'true') {
                 securityGroups = securityGroups ?: lastLaunchConfig.securityGroups
                 termPolicies = termPolicies ?: lastGroup.terminationPolicies
@@ -256,7 +270,7 @@ Group: ${lastGroup.loadBalancerNames}"""
             log.debug """ClusterController.createNextGroup for Cluster '${cluster.name}' Load Balancers for next \
 Group: ${loadBalancerNames}"""
             GroupCreateOptions options = new GroupCreateOptions(
-                    common: new CommonPushOptions(
+                    common: new CommonPushOptions(				
                             userContext: userContext,
                             checkHealth: checkHealth,
                             afterBootWait: convertToIntOrUseDefault(params.afterBootWait, 30),
@@ -266,7 +280,7 @@ Group: ${loadBalancerNames}"""
                             instanceType: instanceType,
                             groupName: nextGroupName,
                             securityGroups: securityGroups,
-                            maxStartupRetries: convertToIntOrUseDefault(params.maxStartupRetries, 5)
+                            maxStartupRetries: convertToIntOrUseDefault(params.maxStartupRetries, 5)			    
                     ),
                     initialTraffic: initialTraffic,
                     minSize: minSize,
@@ -286,7 +300,8 @@ Group: ${loadBalancerNames}"""
                     scheduledActions: newScheduledActions,
                     vpcZoneIdentifier: vpcZoneIdentifier,
                     spotPrice: spotPrice,
-                    ebsOptimized: ebsOptimized
+                    ebsOptimized: ebsOptimized,
+		    associatePublicIpAddress: associatePublicIpAddress
             )
             def operation = pushService.startGroupCreate(options)
             flash.message = "${operation.task.name} has been started."

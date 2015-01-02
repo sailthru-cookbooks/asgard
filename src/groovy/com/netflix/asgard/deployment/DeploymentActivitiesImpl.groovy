@@ -23,7 +23,6 @@ import com.netflix.asgard.AwsEc2Service
 import com.netflix.asgard.AwsLoadBalancerService
 import com.netflix.asgard.AwsSimpleWorkflowService
 import com.netflix.asgard.Caches
-import com.netflix.asgard.CloudReadyService
 import com.netflix.asgard.ConfigService
 import com.netflix.asgard.DeploymentService
 import com.netflix.asgard.DiscoveryService
@@ -56,7 +55,6 @@ class DeploymentActivitiesImpl implements DeploymentActivities {
     AwsLoadBalancerService awsLoadBalancerService
     AwsSimpleWorkflowService awsSimpleWorkflowService
     Caches caches
-    CloudReadyService cloudReadyService
     ConfigService configService
     DeploymentService deploymentService
     DiscoveryService discoveryService
@@ -140,7 +138,7 @@ class DeploymentActivitiesImpl implements DeploymentActivities {
     }
 
     @Override
-    void enableAsg(UserContext userContext, String asgName) {
+    Boolean enableAsg(UserContext userContext, String asgName) {
         Task task = new Task()
         AutoScalingGroup group = awsAutoScalingService.getAutoScalingGroup(userContext, asgName)
         String appName = Relationships.appNameFromGroupName(asgName)
@@ -158,10 +156,11 @@ class DeploymentActivitiesImpl implements DeploymentActivities {
                 discoveryService.enableAppInstances(userContext, appName, instanceIds, task)
             }
         }
+        true
     }
 
     @Override
-    void disableAsg(UserContext userContext, String asgName) {
+    Boolean disableAsg(UserContext userContext, String asgName) {
         Task task = new Task()
         AutoScalingGroup group = awsAutoScalingService.getAutoScalingGroup(userContext, asgName)
         String appName = Relationships.appNameFromGroupName(asgName)
@@ -181,6 +180,7 @@ class DeploymentActivitiesImpl implements DeploymentActivities {
                 discoveryService.disableAppInstances(userContext, appName, instanceIds, task)
             }
         }
+        true
     }
 
     @Override
@@ -197,13 +197,15 @@ class DeploymentActivitiesImpl implements DeploymentActivities {
 
     @ManualActivityCompletion
     @Override
-    Boolean askIfDeploymentShouldProceed(String notificationDestination, String asgName, String operationDescription) {
+    Boolean askIfDeploymentShouldProceed(UserContext userContext, String notificationDestination, String asgName,
+            String operationDescription) {
         WorkflowExecutionBeanOptions workflowExecutionBeanOptions = awsSimpleWorkflowService.
                 getWorkflowExecutionInfoByWorkflowExecution(activity.workflowExecution)
         SwfWorkflowTags tags = workflowExecutionBeanOptions.tags
         deploymentService.setManualTokenForDeployment(tags.id, activity.taskToken)
-        String link = grailsLinkGenerator.link(base: configService.linkCanonicalServerUrl, controller: 'ng',
-                action: ' ', fragment: "deployment/detail/${tags.id}")
+        String clusterName = Relationships.clusterFromGroupName(asgName)
+        String link = grailsLinkGenerator.link(base: configService.linkCanonicalServerUrl, controller: 'cluster',
+                action: 'show', params: [id: clusterName, region: userContext.region.code])
         String message = """
         Auto Scaling Group '${asgName}' is being deployed.
         ${operationDescription}

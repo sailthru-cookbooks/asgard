@@ -25,9 +25,9 @@ import com.netflix.asgard.model.ScheduledAsgAnalysis
 /**
  * Method contracts and annotations used for the automatic deployment SWF workflow actions.
  */
-@Activities(version = "1.8")
+@Activities(version = "1.9")
 @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = -1L,
-        defaultTaskStartToCloseTimeoutSeconds = 300L)
+        defaultTaskStartToCloseTimeoutSeconds = 600L)
 interface DeploymentActivities {
 
     /**
@@ -105,16 +105,18 @@ interface DeploymentActivities {
      *
      * @param userContext who, where, why
      * @param asgName of the ASG to modify
+     * @return boolean representing the success of the activity
      */
-    void enableAsg(UserContext userContext, String asgName)
+    Boolean enableAsg(UserContext userContext, String asgName)
 
     /**
      * Disables scaling behavior for the ASG and traffic to its instances.
      *
      * @param userContext who, where, why
      * @param asgName of the ASG to modify
+     * @return boolean representing the success of the activity
      */
-    void disableAsg(UserContext userContext, String asgName)
+    Boolean disableAsg(UserContext userContext, String asgName)
 
     /**
      * Deletes an ASG.
@@ -143,8 +145,9 @@ interface DeploymentActivities {
      * @return indication on whether to proceed with the deployment
      */
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = -1L,
-            defaultTaskStartToCloseTimeoutSeconds = 86400L)
-    Boolean askIfDeploymentShouldProceed(String notificationDestination, String asgName, String operationDescription)
+            defaultTaskStartToCloseTimeoutSeconds = 259200L)
+    Boolean askIfDeploymentShouldProceed(UserContext userContext, String notificationDestination, String asgName,
+            String operationDescription)
 
     /**
      * Sends a notification about the status of the deployment.

@@ -68,9 +68,9 @@ import groovy.transform.Canonical
 
     /** @see LaunchConfiguration#ebsOptimized */
     Boolean ebsOptimized
-
+    
     /** @see LaunchConfiguration#associatePublicIpAddress */
-    Boolean associatePublicIpAddress
+    Boolean associatePublicIpAddress 
 
     void setSecurityGroups(Collection<String> securityGroups) {
         this.securityGroups = copyNonNullToSet(securityGroups)
