@@ -71,6 +71,7 @@ import com.netflix.asgard.push.Cluster
 import com.netflix.asgard.retriever.AwsResultsRetriever
 import com.netflix.frigga.ami.AppVersion
 import groovyx.gpars.GParsExecutorsPool
+import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.springframework.beans.factory.InitializingBean
@@ -78,6 +79,8 @@ import org.springframework.beans.factory.InitializingBean
 class AwsAutoScalingService implements CacheInitializer, InitializingBean {
 
     static transactional = false
+
+    private static final log = LogFactory.getLog(this)
 
     private static final ImmutableSet<String> ignoredScheduledActionProperties = ImmutableSet.of('startTime', 'time',
             'autoScalingGroupName', 'scheduledActionName', 'scheduledActionARN')
